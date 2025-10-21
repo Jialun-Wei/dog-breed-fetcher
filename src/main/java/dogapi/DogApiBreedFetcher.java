@@ -5,6 +5,7 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
 import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.IOException;
@@ -35,20 +36,29 @@ public class DogApiBreedFetcher implements BreedFetcher {
         try (Response response = client.newCall(request).execute()) {
             return response.body().string();
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new BreedNotFoundException(breed);
         }
     }
 
     @Override
-    public List<String> getSubBreeds(String breed) {
-        // return statement included so that the starter code can compile and run.
-        String response = run(breed);
-        JSONObject jsonObject = new JSONObject(response);
-        JSONArray jsonBreeds = jsonObject.getJSONArray("messages");
-        List<String> subBreeds = new ArrayList<>();
-        for (int i = 0; i < jsonBreeds.length(); i++) {
-            subBreeds.add(jsonBreeds.getString(i));
+    public List<String> getSubBreeds(String breed) throws BreedNotFoundException {
+        try {
+            String response = run(breed);
+            JSONObject jsonObject = new JSONObject(response);
+
+            String status = jsonObject.getString("status");
+            if (!status.equals("success")) {
+                throw new BreedNotFoundException(breed);
+            }
+
+            JSONArray jsonBreeds = jsonObject.getJSONArray("message");
+            List<String> subBreeds = new ArrayList<>();
+            for (int i = 0; i < jsonBreeds.length(); i++) {
+                subBreeds.add(jsonBreeds.getString(i));
+            }
+            return subBreeds;
+        } catch (JSONException e) {
+            throw new BreedNotFoundException(breed);
         }
-        return subBreeds;
     }
 }
